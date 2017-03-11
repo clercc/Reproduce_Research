@@ -1,0 +1,99 @@
+---
+title: "Walking Activity Analysis"
+author: "Christian Clerc"
+date: "March 10, 2017"
+output: html_document
+---
+This is a quick analysis of an activity monitoring dataset from devices such as [Fitbit](www.fitbit.com), [Nike Fuelband](http://www.nike.com/us/en_us/c/nikeplus-fuelband), or [Jawbone Up](https://jawbone.com/up). The data in this analysis come from a personal activity monitoring device over a two month interval (October - November) in 2012 and include the number of steps taken on a five minute interval.
+
+The raw dataset is stored in a comma-separated value (CSV) file with 17,568 observations.
+
+The variables in the dataset are:
+
+* Steps: missing values coded as NA
+* Date: in YYYY-MM-DD format           
+* Interval: in 5 minute increments
+
+
+##Load Packages & Data
+```{r}
+library(dplyr)
+fileURL <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip"
+fpath <- "~/Reprod_ResP1.zip"
+download.file(fileURL, fpath)
+
+raw.data <- read.csv(unz(fpath, "activity.csv"))
+```
+
+##What is the mean total number of steps per day?
+As illustrated below, the histogram is broken out into 5 bins with the median and mean overlaping. However, there is a 1 unit difference where the median is closer to 0 demonstrating a slight skewness of the data. Due to the presence of NA values in the dataset, I ignore them to evaluate the current population of true values. The total.steps.day is a summation of the steps for each day in the dataset.
+```{r}
+total.steps.day <- tapply(raw.data$steps, raw.data$date, sum)
+hist(total.steps.day, main = "Histogram of Total Number of Steps Taken Each Day", xlab = "Total Steps", ylim = c(0,30))
+abline(v=mean(total.steps.day, na.rm = TRUE), col="red", lwd = 2)
+abline(v=median(total.steps.day, na.rm = TRUE), col="blue", lwd = 2)
+legend(x = "topright", c("Mean", "Median"), col = c("red", "blue"), lwd = c(2,2,2))
+mean(total.steps.day, na.rm = TRUE)
+median(total.steps.day, na.rm = TRUE)
+```
+
+##What is the average activity pattern?
+Next I analyze the average number of steps the individual took for each interval over all the observed days with a time series plot using the 5 minute intervals for the independant variable and the average steps per day as the dependant variable. The days typically start off very sedentary until about interval 500. A large spike shoots out at minute interval 835 with three smaller peaks equally high and equally spaced throughout the day at (1210, 1550, 1850), respectively. In between these peaks we observe a flat trend of low movement.
+```{r}
+avg.steps.day <- tapply(raw.data$steps, raw.data$interval, mean, na.rm = TRUE)
+plot(avg.steps.day ~ raw.data$interval[1:288], type = "l", main = "Daily Average Pattern", xlab = "5 Minute Interval", ylab = "Average Steps Per Day")
+avg.steps.interval <- cbind(raw.data$interval[1:288],avg.steps.day)
+maximum <- which.max(avg.steps.interval[,2])
+avg.steps.interval[maximum]
+```
+
+#Correcting For Missing Values
+In this section, I treat the missing values by taking the average number of steps for a specific 5 minute interval over all of the days and apply these mean values to any NA values. 
+
+In the raw dataset, there are `r length(raw.data[is.na(raw.data)])` NA values. In order to replace these, I reassign the original data to a new dataframe and replicate the average number of steps for a given interval over all of the days to be equal to the length of the new dataset. This allows me to combine the two and create a new column in the data set with the mean values. I then iterate a for loop over each row to check if the value is missing. If the if expression evaluates to true, I replace the value with the mean value for that interval of time. Otherwise i leave the original value alone. Once the interation is finished, I drop the mean values column with a new clean dataset.
+
+```{r}
+length(raw.data[is.na(raw.data)])
+
+processed.data <- raw.data
+avg_steps <- rep(avg.steps.day, 61)
+processed.data <- cbind(avg_steps, processed.data)
+
+for (i in 1:nrow(processed.data)) {
+        if (is.na(processed.data$steps[i])) {
+                processed.data$steps[i] <- processed.data$avg_steps[i]
+        } else {processed.data$steps[i] <- processed.data$steps[i]}
+}
+processed.data <- processed.data[c(2:4)]
+```
+
+Here are the new results:
+```{r}
+total_steps_day <- tapply(processed.data$steps, processed.data$date, sum)
+hist(total_steps_day, main = "Histogram of Total Number of Steps Taken Each Day", xlab = "Total Steps")
+abline(v=mean(total_steps_day, na.rm = TRUE), col="red", lwd = 2)
+abline(v=median(total_steps_day, na.rm = TRUE), col="blue", lwd = 2)
+legend(x = "topright", c("Mean", "Median"), col = c("red", "blue"), lwd = c(2,2,2))
+mean(total_steps_day)
+median(total_steps_day)
+```
+
+As can be seen, the mean and the median are now the same. By replacing the NA values with the mean values, I essentially push the median towards the mean because the missing values are over entire days. This implies that by replacing the NA values, I'm adding to the mean frequency.
+
+#Impact of Weekday vs Weekend Activity
+To get a better idea of how values are generated, it's important to look at if these generated values fall into clusters. By grouping the data by weekdays and weekend days, it becomes possible to tease out the individual's weekday and weekend lifestyle. A couple noteworthy results, the weekend mean number of steps surpasses the weekday mean. The low mean is skewed by the early morning and late evening values. The weekend values are more volatile, with a higher baseline trend. Yet, weekday activity generates on average the highest input for a given interval overall.
+```{r fig.height=9}
+
+wkdays <- c('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday')
+processed.data$date <- as.Date(processed.data$date)
+processed.data$datetype <- factor((weekdays(processed.data$date) %in% wkdays), levels = c(FALSE, TRUE), labels = c('Weekend', 'Weekday'))
+      
+
+weekd <- processed.data %>% filter(datetype == "Weekday") %>% group_by(interval) %>% summarize(mean(steps))
+weeke <- processed.data %>% filter(datetype == "Weekend") %>% group_by(interval) %>% summarize(mean(steps))
+
+par(mfrow = c(2,1))
+plot(weekd$`mean(steps)` ~ weekd$interval, type = "l", main = "Average Weekday Activity Pattern", xlab = "5 Minute Interval", ylab = "Average Steps Per Day", ylim = c(0,250))
+plot(weeke$`mean(steps)` ~ weeke$interval, type = "l", main = "Average Weekend Activity Pattern", xlab = "5 Minute Interval", ylab = "Average Steps Per Day", ylim = c(0,250))
+tapply(processed.data$steps, processed.data$datetype, mean)
+```
