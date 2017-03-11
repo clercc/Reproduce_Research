@@ -6,10 +6,11 @@ download.file(fileURL, fpath)
 
 raw.data <- read.csv(unz(fpath, "activity.csv"))
 
-total.steps.day <- tapply(raw.data$steps, raw.data$date, sum)
-hist(total.steps.day, main = "Histogram of Total Number of Steps Taken Each Day", xlab = "Total Steps")
-mean(total.steps.day, na.rm = TRUE)
-median(total.steps.day, na.rm = TRUE)
+total.steps.day <- tapply(raw.data$steps, raw.data$date, sum, na.rm = TRUE)
+hist(total.steps.day, breaks = 11, main = "Histogram of Total Number of Steps Taken Each Day", xlab = "Total Steps", ylim = c(0,30))
+abline(v=mean(total.steps.day, na.rm = TRUE), col="red", lwd = 2)
+abline(v=median(total.steps.day, na.rm = TRUE), col="blue", lwd = 2)
+legend(x = "topright", c("Mean", "Median"), col = c("red", "blue"), lwd = c(2,2,2))
 
 avg.steps.day <- tapply(raw.data$steps, raw.data$interval, mean, na.rm = TRUE)
 plot(avg.steps.day ~ raw.data$interval[1:288], type = "l", main = "Daily Average Pattern", xlab = "5 Minute Interval", ylab = "Average Steps Per Day")
@@ -30,10 +31,13 @@ for (i in 1:nrow(processed.data)) {
 }
 processed.data <- processed.data[c(2:4)]
 
-total.steps.day <- tapply(processed.data$steps, processed.data$date, sum)
-hist(total.steps.day, main = "Histogram of Total Number of Steps Taken Each Day", xlab = "Total Steps")
-mean(total.steps.day)
-median(total.steps.day)
+total_steps_day <- tapply(processed.data$steps, processed.data$date, sum)
+hist(total_steps_day, breaks = 11, main = "Histogram of Total Number of Steps Taken Each Day", xlab = "Total Steps")
+abline(v=mean(total_steps_day, na.rm = TRUE), col="red", lwd = 2)
+abline(v=median(total_steps_day, na.rm = TRUE), col="blue", lwd = 2)
+legend(x = "topright", c("Mean", "Median"), col = c("red", "blue"), lwd = c(2,2,2))
+mean(total_steps_day)
+median(total_steps_day)
 
 wkdays <- c('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday')
 processed.data$date <- as.Date(processed.data$date)

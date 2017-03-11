@@ -2,7 +2,8 @@
 title: "Walking Activity Analysis"
 author: "Christian Clerc"
 date: "March 10, 2017"
-output: html_document
+output:
+  html_document: default
 ---
 This is a quick analysis of an activity monitoring dataset from devices such as [Fitbit](www.fitbit.com), [Nike Fuelband](http://www.nike.com/us/en_us/c/nikeplus-fuelband), or [Jawbone Up](https://jawbone.com/up). The data in this analysis come from a personal activity monitoring device over a two month interval (October - November) in 2012 and include the number of steps taken on a five minute interval.
 
@@ -26,10 +27,10 @@ raw.data <- read.csv(unz(fpath, "activity.csv"))
 ```
 
 ##What is the mean total number of steps per day?
-As illustrated below, the histogram is broken out into 5 bins with the median and mean overlaping. However, there is a 1 unit difference where the median is closer to 0 demonstrating a slight skewness of the data. Due to the presence of NA values in the dataset, I ignore them to evaluate the current population of true values. The total.steps.day is a summation of the steps for each day in the dataset.
+As illustrated below, the histogram is broken out into 11 bins. Due to the presence of NA values in the dataset, I ignore them to evaluate the current population of true values. The total.steps.day is a summation of the steps for each day in the dataset.
 ```{r}
-total.steps.day <- tapply(raw.data$steps, raw.data$date, sum)
-hist(total.steps.day, main = "Histogram of Total Number of Steps Taken Each Day", xlab = "Total Steps", ylim = c(0,30))
+total.steps.day <- tapply(raw.data$steps, raw.data$date, sum, na.rm = TRUE)
+hist(total.steps.day, breaks = 11, main = "Histogram of Total Number of Steps Taken Each Day", xlab = "Total Steps", ylim = c(0,30))
 abline(v=mean(total.steps.day, na.rm = TRUE), col="red", lwd = 2)
 abline(v=median(total.steps.day, na.rm = TRUE), col="blue", lwd = 2)
 legend(x = "topright", c("Mean", "Median"), col = c("red", "blue"), lwd = c(2,2,2))
@@ -70,7 +71,7 @@ processed.data <- processed.data[c(2:4)]
 Here are the new results:
 ```{r}
 total_steps_day <- tapply(processed.data$steps, processed.data$date, sum)
-hist(total_steps_day, main = "Histogram of Total Number of Steps Taken Each Day", xlab = "Total Steps")
+hist(total_steps_day, breaks = 11, main = "Histogram of Total Number of Steps Taken Each Day", xlab = "Total Steps")
 abline(v=mean(total_steps_day, na.rm = TRUE), col="red", lwd = 2)
 abline(v=median(total_steps_day, na.rm = TRUE), col="blue", lwd = 2)
 legend(x = "topright", c("Mean", "Median"), col = c("red", "blue"), lwd = c(2,2,2))
